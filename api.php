@@ -5,32 +5,32 @@ echo('<?xml version="1.0" encoding="UTF-8"?>');
 $return = "<data>";
 
 	if(!isset($_REQUEST['callerID'])){
-		$return = $return . "<error>no callerID provided</error>";
+		$return = $return .	'<matchcount="0">';		
+		$return = $return . "<reason>no callerID provided</reason>";
 	}else{
 		$phoneNumber = $_REQUEST['callerID'];
 	}
-        
-$xml =  simplexml_load_file("data.xml");
 
+	$xml =  simplexml_load_file("data.xml");
 	$recordsFound = count($xml->xpath('//*[@phone ="'.$phoneNumber.'"]'));
+
+		$return = $return . '<match count="'.$recordsFound.'">';	
+		
 		if($recordsFound==0){ 
-				$return = $return . "<match/>";
-			}elseif($recordsFound>1){ 
-				$return = $return . "<error>more then 2 records</error>";
+			}elseif($recordsFound>1){
+				$return = $return . "<reason>more then 2 records</reason>";
 			}else{
 				foreach($xml->xpath('//*[@phone ="'.$phoneNumber.'"]') as $item) {
 					$row = simplexml_load_string($item->asXML());
 					echo $row;
 					$v = $row->xpath('//*[@phone ="'.$phoneNumber.'"]');
 				 	 if($v[0]){ 
-							$return = $return .	"<match>";
 							$return = $return .	"<name><![CDATA["	.	$item->name	.	"]]></name>";
 							$return = $return .	"<callerID><![CDATA["	.	$item->attributes()	.	"]]></callerID>";
 							$return = $return .	"<type><![CDATA["	.	$item->type	.	"]]></type>";
-							$return = $return .	"</match>";
 						}
 				}
 			}
-			$return = $return ."</data>";   
+			$return = $return ."</match></data>";   
 			echo $return;
 ?>

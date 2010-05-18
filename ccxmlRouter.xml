@@ -1,26 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
- <ccxml xmlns:voxeo="http://community.voxeo.com/xmlns/ccxml" version="1.0">
+<ccxml xmlns:voxeo="http://community.voxeo.com/xmlns/ccxml" version="1.0">
 	<meta name="author" content="John Dyer"/>
 	<meta name="maintainer" content="jdyer@voxeo.com"/>
 	<var name="stateVar" expr="'init'"/>
-	
 	<var name="conn_id"/>
-
 	<var name="FromHeader"/>
 	<var name="sessionID"/>
 	<var name="pCharge"/>
 	<var name="callerID"/>
 	<var name="recordsFound"/>
-	
 	<var name="rejectCallWithBusy" expr="'false'"/>
-	<var name="ifRecordFound"/>
-
-	<var name="reasonMessage"/>	
-	<var name="nameOfCaller"/>
-	<var name="redirectRoute"/>
-
 	<var name="diagnosticMode" expr="'true'"/>
-	
+	<!--
+	IF CALLER IS NOT IN LIST WE CAN EITHER REDIRECT WITH A FAST BUSY OR WE CAN 
+	REDIRECT WITH CUSTOM MESSAGE
+	-->
+
+	<!--		reject with busy == 	<var name="matchAction" expr="'busy'"/>   -->
+	<!--		reject with msg 	== 	<var name="matchAction" expr="'msg'"/>    -->
+	<var name="matchAction" expr="'busy'"/>
+
+	<!--
+	CUSTOM MESSAGE TO PRESENT TO CALLER, REQUIRES THAT MATCH ACTION BE SET TO 
+	'msg' (<var name="matchAction" expr="'msg'"/>) IN ORDER TO USE
+	-->
+	<var name="customMessage" expr="'I am sorry but you are not authorized to call this number, please contact your magager if you feel this is a mistake'"/>
+
 	<script>
 		function getNumberFROM(myNumber)
 		{
@@ -34,26 +39,21 @@
 		var myDate = new Date();
 		myDate = myDate.valueOf();
 	</script>
-
 	<eventprocessor statevariable="stateVar">
-		
 		<transition event="connection.alerting">
-			
 			<!-- START LOGGING	-->
 			<log expr="'[x-sbc-p-charge-info](pCharge): ' + event$.connection.protocol.sip.headers['x-sbc-p-charge-info']"/>
 			<log expr="'[x-sbc-from](FromHeader): ' + event$.connection.protocol.sip.headers['x-sbc-from']"/>
 			<log expr="'[From]: ' + event$.connection.protocol.sip.headers['From']"/>
 			<log expr="'[session.id]: ' + session.id"/>
 			<!-- END LOGGING -->
-			
 			<assign name="sessionID" expr="session.id"/>
 			<assign name="pCharge" expr="event$.connection.protocol.sip.headers['x-sbc-p-charge-info']"/>
-			
 			<if cond="diagnosticMode=='true'">
 				<log expr="'@@@@[ DIAGNOSTIC MODE ]'"/>
-				<assign name="callerID" expr="4074740001"/>
-				<assign name="FromHeader" expr="'&lt;sip:4074740001@localhost&gt;;tag=OB4UpeH-JQH.chtR3b6-KlgIdslxrqAc'"/>
-			<else/>
+				<assign name="callerID" expr="4074740004"/>
+				<assign name="FromHeader" expr="'&lt;sip:4074740004@localhost&gt;;tag=OB4UpeH-JQH.chtR3b6-KlgIdslxrqAc'"/>
+				<else/>
 				<assign name="callerID" expr="getNumberFROM(FromHeader)"/>
 				<assign name="FromHeader" expr="event$.connection.protocol.sip.headers['x-sbc-from']"/>
 				<log expr="'@@@@@@@@ FROM: [ ' + getNumberFROM(FromHeader) + ' ]'"/>
@@ -61,122 +61,115 @@
 			<assign name="conn_id" expr="event$.connectionid"/>
 			<fetch type="'text/plain'" next="'api.php'" namelist="callerID"/>
 		</transition>
-
 		<transition event="fetch.done">
-			<script><![CDATA[
+			<script>
+				<![CDATA[
 			event$.data = event$.data.replace('<?xml version="1.0"?>', ""); // mozilla bug 336551
 			event$.data = event$.data.replace("<?xml version='1.0'?>", ""); // mozilla bug 336551
 			event$.data = event$.data.replace('<?xml version="1.0" encoding="UTF-8"?>', ""); // mozilla bug 336551
 			var data = new XML(event$.data);
-			]]></script>
-			
-			<log expr="'\n@@@@@@@@\tXML DATA\t@@@@@@@@\n'	+	data	+'\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n'"/>
-		 <!--
-		 <assign name="ifRecordFound" expr="data.ifRecordFound.toString()"/>
-			<assign name="rejectCallWithBusy"	expr="data.rejectCallWithBusy.@value.toString()"/>
+			]]>
+			</script>
+			<log expr="'\n@@@@@@@@\tXML DATA\t@@@@@@@@\n' + data +'\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n'"/>
+
+	<log expr="'\n@@@@@@@@\t@@@@@@@@\n' + data.length() +'\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n'"/>
+
+			<assign name="ifRecordFound" expr="data.ifRecordFound.toString()"/>
+			<assign name="rejectCallWithBusy" expr="data.rejectCallWithBusy.@value.toString()"/>
 			<assign name="redirectRoute" expr="data.rejectCallWithBusy.toString()"/>
 			<assign name="recordsFound" expr="data.queryResults.@recordsFound.toString()"/>
 			<assign name="nameOfCaller" expr="data.queryResults.recordName.toString()"/>
-			
 			<log expr="'@@@@[rejectCallWithBusy] ' + rejectCallWithBusy "/>
-			<log expr="'@@@@[ifRecordFound] ' + ifRecordFound "/>			
+			<log expr="'@@@@[ifRecordFound] ' + ifRecordFound "/>
 			<log expr="'@@@@[redirectRoute] ' + redirectRoute "/>
 			<log expr="'@@@@[recordsFound] ' + recordsFound "/>
 			<log expr="'@@@@[nameOfCaller] \n' + nameOfCaller "/>
-		-->	
-			<if cond="rejectCallWithBusy=='true'">
-				<!--  
+			<if cond="rejectCallWithBusy=='true'"><!--  
 				IF WE ARE GOING TO REJECT CALL LETS DO IT HERE
-				-->
-				<log expr="'@@@@ REJECT CALL WITH BUSY ( TRUE )'"/>
-				<log expr="'\n@@@@@@@@@@@@@@@@@@@@@@\nREJECT CALL\tSIP/603\nREASON\t'	+	reasonMessage	+	'\nUSER NAME\t'	+	nameOfCaller	+'\n@@@@@@@@@@@@@@@@@@@@@@\n'"/>
+				--><log expr="'@@@@ REJECT CALL WITH BUSY ( TRUE )'"/>
+				<log expr="'\n@@@@@@@@@@@@@@@@@@@@@@\nREJECT CALL\tSIP/603\nREASON\t' + reasonMessage + '\nUSER NAME\t' + nameOfCaller +'\n@@@@@@@@@@@@@@@@@@@@@@\n'"/>
 				<reject connectionid="conn_id" reason="'603'"/>
 				<log expr="'\n@@@@\tREJECT CALL\t@@@@\n\t( FALSE )\nSIP:\tSIP/603'"/>
-			<else/>
-			<!-- Lets redirect caller to either accept or rejectURL-->
-			<if cond="redirectRoute=='acceptCall'">
-				<log expr="'@@@@ ACCEPT CALL | REDIRECT [' + redirectRoute + ']'"/>
-				<elseif cond="redirectRoute=='rejectCall'"/>
-					<log expr="'@@@@ REJECT CALL | REDIRECT [' + redirectRoute + ']'"/>
-			</if>
-			<redirect dest="redirectRoute" connectionid="conn_id"/>
-		</if>
-		</transition>
+				<else/>
+				<!-- Lets redirect caller to either accept or rejectURL-->
+					<if cond="redirectRoute=='acceptCall'">
+							<log expr="'@@@@ ACCEPT CALL | REDIRECT [' + redirectRoute + ']'"/>
+								<elseif cond="redirectRoute=='rejectCall'"/>
+									<log expr="'@@@@ REJECT CALL | REDIRECT [' + redirectRoute + ']'"/>
+					</if>
+					<redirect dest="redirectRoute" connectionid="conn_id"/>
+			 </if>
+		</transition>     
 		
 		<!--<transition event="connection.connected" state="errorPrompt">
 			<log expr="'@@@@@ PLAYING ERROR MESSAGE TO CALLER'"/>
 			<dialogstart src="'null://?text=Sorry there has been an internal server error, please try again later&amp;termdigits=*'" type="'application/x-texttospeech'"/>
 		</transition>-->
-
+		
+		<!--
 		<transition event="dialog.exit">
 			<log expr="'@@@@@ ENDING APPLICATION'"/>
 			<send name="'LOG_APPLICATION_ERROR'" target="session.id"/>
-		</transition>		
-		
+		</transition>
 		<transition event="CONNECTION.REDIRECTED">
 			<log expr="'Connection Redirected' "/>
 			<send name="'LOG_CALL_REDIRECT'" target="session.id"/>
-		</transition>				
-		
+		</transition>
 		<transition event="CONNECTION.FAILED">
 			<if cond="event$.reason == 'rejected'">
 				<send name="'LOG_CALL_REJECTED'" target="session.id"/>
-			<else/>
+				<else/>
 				<log expr="'@@@@@ CONNECTION FAILED - REASON [' + event$.reason + ']'"/>
 				<send name="'LOG_CALL_ERROR'" target="session.id"/>
 			</if>
 		</transition>
-		
 		<transition event="error.*">
 			<log expr="'An error has occured (' + event$.reason + ').  Exiting application.'"/>
 			<send name="'LOG_APPLICATION_ERROR'" target="session.id"/>
-		</transition>
-		
-<!-- THIS IS WHERE YOU WOULD LOG RESULTS -->
-
-				
+		</transition>            
+		-->
+		<!-- THIS IS WHERE YOU WOULD LOG RESULTS -->
 		<transition event="LOG_CALL_REDIRECT">
 			<assign name="stateVar" expr="'postCallCleanUp'"/>
 			<var name="callDisposition" expr="'Redirected'"/>
 			<log expr="'@@@@@@ REDIRECTED CALL - Time[Epoch]: ' + myDate + ' - SessionID: ' + sessionID + ' - CallerID: ' + callerID + ' - Call Disposition: ' + callDisposition"/>
 			<send target="'../utilities/logCatcher.php'" name="'http.get'" delay="'250ms'" targettype="'basichttp'" namelist="sessionID callerID callDisposition myDate"/>
 		</transition>
-		
 		<transition event="LOG_CALL_REJECTED">
 			<assign name="stateVar" expr="'postCallCleanUp'"/>
 			<var name="callDisposition" expr="'Rejected'"/>
 			<log expr="'@@@@@@ REDIRECTED CALL - Time[Epoch]: ' + myDate + ' - SessionID: ' + sessionID + ' - CallerID: ' + callerID + ' - Call Disposition: ' + callDisposition"/>
 			<send target="'../utilities/logCatcher.php'" name="'http.get'" delay="'250ms'" targettype="'basichttp'" namelist="sessionID callerID callDisposition myDate"/>
 		</transition>
-		
 		<transition event="LOG_CALL_ERROR">
 			<assign name="stateVar" expr="'postCallCleanUp'"/>
 			<var name="callDisposition" expr="'Error'"/>
 			<log expr="'@@@@@@ REDIRECTED CALL - Time[Epoch]: ' + myDate + ' - SessionID: ' + sessionID + ' - CallerID: ' + callerID + ' - Call Disposition: ' + callDisposition"/>
 			<send target="'../utilities/logCatcher.php'" name="'http.get'" delay="'250ms'" targettype="'basichttp'" namelist="sessionID callerID callDisposition myDate"/>
 		</transition>
-		
 		<transition event="LOG_APPLICATION_ERROR">
 			<assign name="stateVar" expr="'postCallCleanUp'"/>
 			<var name="callDisposition" expr="'Error'"/>
 			<log expr="'@@@@@@ REDIRECTED CALL - Time[Epoch]: ' + myDate + ' - SessionID: ' + sessionID + ' - CallerID: ' + callerID + ' - Call Disposition: ' + callDisposition"/>
 			<send target="'../utilities/logCatcher.php'" name="'http.get'" delay="'250ms'" targettype="'basichttp'" namelist="sessionID callerID callDisposition myDate"/>
 		</transition>
-		
-		  <transition event="send.SUCCESSFUL" state="postCallCleanUp">
-				<log expr="'@@@@: SEDNING USER.GOODBYE'"/>
-				<send name="'USER.GOODBYE'" target="session.id" targettype="'ccxml'" delay="'250ms'"/>
-		 </transition>
-	  
-		
+		<transition event="send.SUCCESSFUL" state="postCallCleanUp">
+			<log expr="'@@@@: SEDNING USER.GOODBYE'"/>
+			<send name="'USER.GOODBYE'" target="session.id" targettype="'ccxml'" delay="'250ms'"/>
+		</transition>
 		<transition event="USER.GOODBYE" state="postCallCleanUp">
-			<log expr="'@'"/><log expr="'@@'"/><log expr="'@@@'"/><log expr="'@@@@'"/>
+			<log expr="'@'"/>
+			<log expr="'@@'"/>
+			<log expr="'@@@'"/>
+			<log expr="'@@@@'"/>
 			<log expr="'---------- POST CALL SEND COMPLETE ----------'"/>
-			<log expr="'@@@@'"/><log expr="'@@@'"/><log expr="'@@'"/><log expr="'@'"/>
+			<log expr="'@@@@'"/>
+			<log expr="'@@@'"/>
+			<log expr="'@@'"/>
+			<log expr="'@'"/>
 			<exit/>
-    </transition>
-
+		</transition>
 		<transition event="send.successful"/>
-		
+
 	</eventprocessor>
 </ccxml>
