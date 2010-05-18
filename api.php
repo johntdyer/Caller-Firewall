@@ -12,8 +12,6 @@ $return = "<data>";
         
 $xml =  simplexml_load_file("data.xml");
 
-
-
 	$recordsFound = count($xml->xpath('//*[@phone ="'.$phoneNumber.'"]'));
 		if($recordsFound==0){ 
 				$return = $return . "<match/>";
@@ -24,12 +22,13 @@ $xml =  simplexml_load_file("data.xml");
 					$row = simplexml_load_string($item->asXML());
 					echo $row;
 					$v = $row->xpath('//*[@phone ="'.$phoneNumber.'"]');
-					if($v[0]){ 
-						$return = $return .	"<match>";
-						$return = $return .	"<name>"	.	$item->name	.	"</name>";
-						$return = $return .	"<type>"	.	$item->type	.	"</type>";
-						$return = $return .	"</match>";
-					}
+				 	 if($v[0]){ 
+							$return = $return .	"<match>";
+							$return = $return .	"<name><![CDATA["	.	$item->name	.	"]]></name>";
+							$return = $return .	"<callerID><![CDATA["	.	$item->attributes()	.	"]]></callerID>";
+							$return = $return .	"<type><![CDATA["	.	$item->type	.	"]]></type>";
+							$return = $return .	"</match>";
+						}
 				}
 			}
 			$return = $return ."</data>";   
