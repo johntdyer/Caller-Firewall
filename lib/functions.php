@@ -1,6 +1,6 @@
 <?
 
-$config = parse_ini_file("../config.ini");
+$config = parse_ini_file("../config/config.ini");
 $base_url = str_replace($_SERVER['DOCUMENT_ROOT'], "", dirname($_SERVER['PHP_SELF'])); 
 
 /**
