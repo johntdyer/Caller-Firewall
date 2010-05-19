@@ -26,5 +26,17 @@ $base_url = str_replace($_SERVER['DOCUMENT_ROOT'], "", dirname($_SERVER['PHP_SEL
 						unlink($Filename);
 					}
 				}
+			}     
+			
+			function sendAlertEmail($sessionID,$phoneNumber){
+				global $config;
+				date_default_timezone_set($config['time_zone']);
+			 $to = $config['admin_email_to'];
+			 $subject = "*URGENT* - Firewall Application Error";
+			 $message = "Something broke\nHere are the details:\n\nSession Info\n\n\tTime:\t\t" .date('H:i:s')." " . $config['time_zone'] . "\n\tSessionID:\t".$sessionID."\n\tPhone:\t\t". $phoneNumber."";
+			 $headers = 'From: '.$config['admin_email_from'] . "\r\n" .
+			    'Reply-To: '.$config['admin_email_from'] . "\r\n" .
+			    'X-Mailer: PHP/' . phpversion();
+			mail($to, $subject, $message, $headers);
 			}
 ?>

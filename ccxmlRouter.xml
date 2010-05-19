@@ -18,10 +18,8 @@
 
 	<var name="noMatchAction"/>
 	<var name="customMessage"/>	
-	<var name="redirectRoute"/>
-	
+	<var name="redirectRoute"/>	
 	<var name="diagnosticMode" expr="'true'"/>
-
 
 	<script>
 		function getNumberFROM(myNumber)
@@ -45,15 +43,20 @@
 			<!-- END LOGGING -->
 			<assign name="sessionID" expr="session.id"/>
 			<assign name="pCharge" expr="event$.connection.protocol.sip.headers['x-sbc-p-charge-info']"/>
-			<if cond="diagnosticMode=='true'">
+			<!-- START DEVELOPMENT FUNCTIONS -->
+					
+					<!-- this was just for testing, since 
+					I used SIP phone for development	--> 
+		 <if cond="diagnosticMode=='true'">
 				<log expr="'@@@@[ DIAGNOSTIC MODE ]'"/>
-				<assign name="callerID" expr="4074740004"/>
+				<assign name="callerID" expr="4074740003"/>
 				<assign name="FromHeader" expr="'&lt;sip:4074740004@localhost&gt;;tag=OB4UpeH-JQH.chtR3b6-KlgIdslxrqAc'"/>
 				<else/>
 				<assign name="callerID" expr="getNumberFROM(FromHeader)"/>
 				<assign name="FromHeader" expr="event$.connection.protocol.sip.headers['x-sbc-from']"/>
 				<log expr="'@@@@@@@@ FROM: [ ' + getNumberFROM(FromHeader) + ' ]'"/>
-			</if>
+			</if>  
+			<!-- END DEVELOPMENT FUNCTIONS -->
 			<assign name="conn_id" expr="event$.connectionid"/>
 			<fetch type="'text/plain'" next="'api.php'" namelist="callerID"/>
 		</transition>
@@ -80,7 +83,7 @@
 			<if cond="Number(recordsFound)&gt;1">
 				<!-- This should only happen on an application error-->
 					<assign name="reasonMessage" expr="data.match.reason.toString()"/>
-					<log expr="'\n@@@@[reasonMessage] ' + reasonMessage "/>
+					<log expr="'@@@@[reasonMessage] ' + reasonMessage "/>
 					<assign name="stateVar" expr="'promptApplicationError'"/>
 					<assign name="callDisposition" expr="'Application Error'"/>
 					<accept connectionid="conn_id"/>  
@@ -88,12 +91,8 @@
 					<elseif cond="Number(recordsFound)==0"/>
 						<!-- Only log this out if we have a single record -->
 						<log expr="'@@@@[customMessage] ' + customMessage "/>
-						<log expr="'@@@@[redirectRoute] ' + redirectRoute "/>
 						<log expr="'@@@@[noMatchAction] ' + noMatchAction "/>
-						<log expr="'@@@@[callerName] ' + callerName "/>
-						<log expr="'@@@@[returnPhoneNumber] ' + returnPhoneNumber "/>
-						<log expr="'@@@@[returnPhoneNumberType] ' + returnPhoneNumberType "/>
-						
+
 						<if cond="noMatchAction=='msg'">
 								<log expr="'@@@@[ REJECTING CALL WITH CUSTOM MSG ]'"/>
 								<assign name="callDisposition" expr="'Reject With Message'"/>
@@ -106,7 +105,12 @@
 								<send name="'user.CALL_CLEANUP'" target="session.id" delay="'250ms'"/>
 								<reject connectionid="conn_id" reason="'603'"/>
 						</if>
-						<else/>
+						<else/>  
+							<log expr="'@@@@[callerName] ' + callerName "/>
+							<log expr="'@@@@[returnPhoneNumber] ' + returnPhoneNumber "/>
+							<log expr="'@@@@[returnPhoneNumberType] ' + returnPhoneNumberType "/>
+							<log expr="'@@@@[redirectRoute] ' + redirectRoute "/>
+						
 						<log expr="'@@@@[REDIRECT CALL]'"/>
 						<redirect dest="redirectRoute" connectionid="conn_id"/>
 			</if>
@@ -162,14 +166,7 @@
 		</transition>
 
 		<transition event="USER.GOODBYE" state="postCallCleanUp">
-			<log expr="'@'"/>
-			<log expr="'@@'"/>
-			<log expr="'@@@'"/>
-			<log expr="'@@@@'"/>
-			<log expr="'@@@@'"/>
-			<log expr="'@@@'"/>
-			<log expr="'@@'"/>
-			<log expr="'@'"/>
+			<log expr="'\n@\n@@\n@@@\n@@@@\nCALL ENDED\n@@@@\n@@@\n@@\n@\n'"/>
 			<exit/>
 		</transition>
 

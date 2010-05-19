@@ -1,4 +1,7 @@
 <?
+
+
+
 include('../lib/functions.php');
 cleanLogDir($config['days_to_log'],'*.csv','../logs/');
 
@@ -37,4 +40,8 @@ if(!file_exists($myFile)){
 	fclose($fh);
 	}
 
+
+if(trim($callDisposition)=="Application Error"){
+	sendAlertEmail($sessionID,$callerID);
+}
 ?>
