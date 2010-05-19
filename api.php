@@ -13,7 +13,7 @@ $return = "<data>";
 		$phoneNumber = $_REQUEST['callerID'];
 	}
 
-	$xml =  simplexml_load_file("data.xml");
+	$xml =  simplexml_load_file("db/data.xml");
 	$recordsFound = count($xml->xpath('//*[@phone ="'.$phoneNumber.'"]'));
 
 	$return = $return . '<match count="'.$recordsFound.'">';	

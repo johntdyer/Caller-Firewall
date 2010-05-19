@@ -1,0 +1,36 @@
+This is the application firewall
+Author:  John Dyer
+Email: jdyer@voxeo.com
+
+Overview:
+
+  This application allows you to redirect matching callers to the application, 
+effectivly acting like a firewall, this host.allow.  No matching callers are 
+either rejected with a fast busy, or a custom message, both of which are set 
+in the config.ini file (set in static XML	file ./db/data.xml)
+
+
+Setup:
+
+	-Deploy in web accessible location, if you wish to utilize Prophecy's built 
+	in webserver then deploy in the following path (OS Dependent)
+	
+	Windows:  C:\Program Files\Voxeo\webapps\www\
+	OSX/Linux \opt\voxeo\webapps\www\
+	
+	Add the following application URL as your default route (Type=CCXML)
+	
+ 	http:///127.0.0.1:9990/Caller-Firewall/ccxmlRouter.xml             
+
+	You will need to edit the config.ini file to set this redirect route to your
+	existing application URL for successful redirects
+  
+
+	Testing:
+		You can edit the cccxmlRouter.xml file and on line 22 set test to true:
+		
+		<var name="diagnosticMode" expr="'false'"/>
+		
+		Changing this value allows you to edit line 52, or 53, to 'spoof' ANI 
+		which can help during deployment. 
+		
