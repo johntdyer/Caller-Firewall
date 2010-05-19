@@ -47,5 +47,5 @@ $return = "<data>";
 			} 
 
 $return = $return ."</data>";
-echo $return;
+gecho $return;
 ?>
