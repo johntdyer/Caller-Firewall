@@ -1,6 +1,8 @@
-<?php 
-header ("content-type: text/xml"); 
+<?php  
+$config = parse_ini_file("config.ini");
+$showExtraData=false;
 
+header ("content-type: text/xml"); 
 echo('<?xml version="1.0" encoding="UTF-8"?>');
 $return = "<data>";
 
@@ -19,7 +21,8 @@ $return = "<data>";
 		if($recordsFound==0){ 
 			}elseif($recordsFound>1){
 				$return = $return . "<reason>more then 2 records</reason>";
-			}else{
+			}else{    
+				$showExtraData=true;
 				foreach($xml->xpath('//*[@phone ="'.$phoneNumber.'"]') as $item) {
 					$row = simplexml_load_string($item->asXML());
 					echo $row;
@@ -31,6 +34,18 @@ $return = "<data>";
 						}
 				}
 			}
-			$return = $return ."</match></data>";   
-			echo $return;
+			$return = $return ."</match>";
+
+// Dont want to show this extra data unless we actually have a record
+			
+			if($showExtraData){
+				$return = $return ."<applicationData>";
+				$return = $return ."<redirectURL>".$config['redirect_application_url']."</redirectURL>";
+				$return = $return ."<redirectMessage><![CDATA[".strtolower($config['reject_message'])."]]></redirectMessage>"; 
+				$return = $return ."<matchAction>".strtolower($config['on_redirect_match'])."</matchAction>";   
+				$return = $return ."</applicationData>"; 
+			} 
+
+$return = $return ."</data>";
+echo $return;
 ?>

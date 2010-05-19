@@ -1,8 +1,8 @@
 <?
-include('../functions.inc');
-cleanLogDir(30,'*.txt','../logs/');
+include('../lib/functions.php');
+cleanLogDir($config['days_to_log'],'*.csv','../logs/');
 
-date_default_timezone_set('GMT');
+date_default_timezone_set($config['time_zone']);
 
 $myFile 		=	"../logs/LOGS__".date('Y-m-d-H00').".csv";
 $year 			=	date('Y');

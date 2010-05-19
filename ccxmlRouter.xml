@@ -14,8 +14,9 @@
 	<var name="returnPhoneNumber"/>
 	<var name="returnPhoneNumberType"/>
 	<var name="reasonMessage"/>
+	<var name="callDisposition"/>
 
-	
+	<var name="redirectRoute" expr="'sip:callxml@127.0.0.1'"/>
 	<var name="diagnosticMode" expr="'true'"/>
 	<!--
 	IF CALLER IS NOT IN LIST WE CAN EITHER REDIRECT WITH A FAST BUSY OR WE CAN 
@@ -23,14 +24,13 @@
 	-->
 	<!--		reject with busy == 	<var name="noMatchAction" expr="'busy'"/>   -->
 	<!--		reject with msg 	== 	<var name="noMatchAction" expr="'msg'"/>    -->
-	
 	<var name="noMatchAction" expr="'msg'"/>
 
 	<!--
 	CUSTOM MESSAGE TO PRESENT TO CALLER, REQUIRES THAT MATCH ACTION BE SET TO 
 	'msg' (<var name="noMatchAction" expr="'msg'"/>) IN ORDER TO USE
 	-->
-	<var name="customMessage" expr="'I am sorry but you are not authorized to call this number, please contact your magager if you feel this is a mistake'"/>
+	<var name="customMessage" expr="''"/>
 
 	<script>
 		function getNumberFROM(myNumber)
@@ -56,7 +56,7 @@
 			<assign name="pCharge" expr="event$.connection.protocol.sip.headers['x-sbc-p-charge-info']"/>
 			<if cond="diagnosticMode=='true'">
 				<log expr="'@@@@[ DIAGNOSTIC MODE ]'"/>
-				<assign name="callerID" expr="4074740009"/>
+				<assign name="callerID" expr="4074740001"/>
 				<assign name="FromHeader" expr="'&lt;sip:4074740004@localhost&gt;;tag=OB4UpeH-JQH.chtR3b6-KlgIdslxrqAc'"/>
 				<else/>
 				<assign name="callerID" expr="getNumberFROM(FromHeader)"/>
@@ -79,8 +79,8 @@
 			<assign name="recordsFound" expr="data.match.@count.toString()"/>
 			<assign name="callerName" expr="data.match.name.toString()"/>
 			<assign name="returnPhoneNumber" expr="data.match.number.toString()"/>
-			<assign name="returnPhoneNumberType" expr="data.match.type.toString()"/>			
-			
+			<assign name="returnPhoneNumberType" expr="data.match.type.toString()"/>
+
 			<!--
 			<log expr="'\n@@@@[noMatchAction] ' + noMatchAction "/>
 			<log expr="'\n@@@@[recordsFound] ' + recordsFound "/>
@@ -89,87 +89,79 @@
 			<log expr="'\n@@@@[returnPhoneNumberType] ' + returnPhoneNumberType "/>
 			-->
 			<if cond="Number(recordsFound)&gt;1">
-					<assign name="reasonMessage" expr="data.match.reason.toString()"/>			
+				<!-- This should only happen on an application error-->
+					<assign name="reasonMessage" expr="data.match.reason.toString()"/>
 					<log expr="'\n@@@@[reasonMessage] ' + reasonMessage "/>
 					<assign name="stateVar" expr="'promptApplicationError'"/>
+					<assign name="callDisposition" expr="'Application Error'"/>
 					<accept connectionid="conn_id"/>  
-					
-		 	<elseif cond="Number(recordsFound)==0"/>
-					
-					<if cond="noMatchAction=='msg'">
-							<log expr="'@@@@[ REJECTING CALL WITH CUSTOM MSG ]'"/>
-							<assign name="stateVar" expr="'promptRejectMsg'"/>
-							<accept connectionid="conn_id"/>  
-						<elseif cond="noMatchAction=='busy'"/>
-							<log expr="'\n@@@@@@@@@@@@@@@@@@@@@@\nREJECT CALL\tSIP/603\n@@@@@@@@@@@@@@@@@@@@@@\n'"/>
-							<reject connectionid="conn_id" reason="'603'"/>
-					</if>
-		 	</if>
-		 <!-- <redirect dest="redirectRoute" connectionid="conn_id"/>-->
+
+					<elseif cond="Number(recordsFound)==0"/>
+						<if cond="noMatchAction=='msg'">
+								<log expr="'@@@@[ REJECTING CALL WITH CUSTOM MSG ]'"/>
+								<assign name="callDisposition" expr="'Reject With Message'"/>
+								<assign name="stateVar" expr="'promptRejectMsg'"/> 
+								<accept connectionid="conn_id"/>  
+							<elseif cond="noMatchAction=='busy'"/>	
+								<log expr="'@@@@[ REJECTING CALL WITH BUSY ]'"/>
+								<assign name="callDisposition" expr="'Reject With Busy'"/>
+								<log expr="'\n@@@@@@@@@@@@@@@@@@@@@@\nREJECT CALL\tSIP/603\n@@@@@@@@@@@@@@@@@@@@@@\n'"/>
+								<send name="'user.CALL_CLEANUP'" target="session.id" delay="'250ms'"/>
+								<reject connectionid="conn_id" reason="'603'"/>
+						</if>
+						<else/>
+						<log expr="'@@@@[REJECT CALL]'"/>
+						<redirect dest="redirectRoute" connectionid="conn_id"/>
+			</if>
 		</transition>
+
 		<transition event="connection.connected" state="promptApplicationError">
 			<log expr="'@@@@[APPLICATION.ERROR.PROMPT]'"/>		
 			<dialogstart src="'null://?text=Sorry there has been an application error, please try again later&amp;termdigits=*'" type="'application/x-texttospeech'"/>
 		</transition>
-    
+
 		<transition event="connection.connected" state="promptRejectMsg">
 			<log expr="'@@@@[APPLICATION.ERROR.PROMPT]'"/>		
 			<dialogstart src="'null://?text='+customMessage+'&amp;termdigits=*'" type="'application/x-texttospeech'"/>
 		</transition>
 
-
-
-		<transition event="dialog.exit">
-			<log expr="'@@@@@ ENDING APPLICATION'"/>
-			<send name="'user.LOG_APPLICATION_ERROR'" target="session.id"/>
-		</transition>    
-		
-		
-		<transition event="CONNECTION.REDIRECTED">
-			<log expr="'Connection Redirected' "/>
-			<send name="'user.LOG_CALL_REDIRECT'" target="session.id"/>
-		</transition>
-		<transition event="CONNECTION.FAILED">
-			<if cond="event$.reason == 'rejected'">
-				<send name="'user.LOG_CALL_REJECTED'" target="session.id"/>
-				<else/>
-				<log expr="'@@@@@ CONNECTION FAILED - REASON [' + event$.reason + ']'"/>
-				<send name="'user.LOG_CALL_ERROR'" target="session.id"/>
+		<transition event="connection.disconnected">
+			<if cond="event$.connectionid==conn_id">
+				<log expr="'@@@@[ INBOUND CALL HUNGUP] ' "/>
 			</if>
 		</transition>
+
+		<transition event="dialog.exit">
+			<log expr="'@@@@[callDisposition] ' + callDisposition"/>
+			
+			<log expr="'@@@@@ ENDING APPLICATION'"/>    
+			<log expr="'@@@@@ POST CALL CLEAN UP '"/>
+			<send name="'user.CALL_CLEANUP'" target="session.id"/>
+		</transition>
+
+		<transition event="CONNECTION.REDIRECTED">
+			<assign name="callDisposition" expr="'Call Redirected'"/>
+			<log expr="'Connection Redirected'"/>
+			<log expr="'@@@@[callDisposition] ' + callDisposition"/>
+			<send name="'user.CALL_CLEANUP'" target="session.id"/>
+		</transition>
+
 		<transition event="error.*">
 			<log expr="'An error has occured (' + event$.reason + ').  Exiting application.'"/>
 			<send name="'user.LOG_APPLICATION_ERROR'" target="session.id"/>
-		</transition>            
+		</transition>
 
-		<transition event="user.LOG_CALL_REDIRECT">
+		<transition event="user.CALL_CLEANUP">
 			<assign name="stateVar" expr="'postCallCleanUp'"/>
-			<var name="callDisposition" expr="'Redirected'"/>
-			<log expr="'@@@@@@ REDIRECTED CALL - Time[Epoch]: ' + myDate + ' - SessionID: ' + sessionID + ' - CallerID: ' + callerID + ' - Call Disposition: ' + callDisposition"/>
-			<send target="'../utilities/logCatcher.php'" name="'http.get'" delay="'250ms'" targettype="'basichttp'" namelist="sessionID callerID callDisposition myDate"/>
+			<log expr="'@@@@@@ ' + callDisposition + ' CALL - Time[Epoch]: ' + myDate + ' - SessionID: ' + sessionID + ' - CallerID: ' + callerID + ' - Call Disposition: ' + callDisposition"/>
+			<send target="'utilities/logCatcher.php'" name="'http.get'" delay="'250ms'" targettype="'basichttp'" namelist="sessionID callerID callDisposition myDate"/>
 		</transition>
-		<transition event="user.LOG_CALL_REJECTED">
-			<assign name="stateVar" expr="'postCallCleanUp'"/>
-			<var name="callDisposition" expr="'Rejected'"/>
-			<log expr="'@@@@@@ REJECTED CALL - Time[Epoch]: ' + myDate + ' - SessionID: ' + sessionID + ' - CallerID: ' + callerID + ' - Call Disposition: ' + callDisposition"/>
-			<send target="'../utilities/logCatcher.php'" name="'http.get'" delay="'250ms'" targettype="'basichttp'" namelist="sessionID callerID callDisposition myDate"/>
-		</transition>
-		<transition event="user.LOG_CALL_ERROR">
-			<assign name="stateVar" expr="'postCallCleanUp'"/>
-			<var name="callDisposition" expr="'Error'"/>
-			<log expr="'@@@@@@ REDIRECTED CALL - Time[Epoch]: ' + myDate + ' - SessionID: ' + sessionID + ' - CallerID: ' + callerID + ' - Call Disposition: ' + callDisposition"/>
-			<send target="'../utilities/logCatcher.php'" name="'http.get'" delay="'250ms'" targettype="'basichttp'" namelist="sessionID callerID callDisposition myDate"/>
-		</transition>
-		<transition event="user.LOG_APPLICATION_ERROR">
-			<assign name="stateVar" expr="'postCallCleanUp'"/>
-			<var name="callDisposition" expr="'Error'"/>
-			<log expr="'@@@@@@ REDIRECTED CALL - Time[Epoch]: ' + myDate + ' - SessionID: ' + sessionID + ' - CallerID: ' + callerID + ' - Call Disposition: ' + callDisposition"/>
-			<send target="'../utilities/logCatcher.php'" name="'http.get'" delay="'250ms'" targettype="'basichttp'" namelist="sessionID callerID callDisposition myDate"/>
-		</transition>
+
 		<transition event="send.SUCCESSFUL" state="postCallCleanUp">
 			<log expr="'@@@@: SEDNING USER.GOODBYE'"/>
 			<send name="'USER.GOODBYE'" target="session.id" targettype="'ccxml'" delay="'250ms'"/>
 		</transition>
+
 		<transition event="USER.GOODBYE" state="postCallCleanUp">
 			<log expr="'@'"/>
 			<log expr="'@@'"/>
@@ -180,10 +172,9 @@
 			<log expr="'@@'"/>
 			<log expr="'@'"/>
 			<exit/>
-		</transition>    
-	
+		</transition>
+
 		<transition event="send.successful"/>
 
 	</eventprocessor>
 </ccxml>
-	
