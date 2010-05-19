@@ -1,23 +1,23 @@
 <?xml version="1.0"?>
 <users>
 	<record phone="4074740001">
-		<name>john1</name>
+		<name>John Dyer</name>
 		<type>office</type>
 	</record>
 	<record phone="4074740002">
-		<name>john2</name>
+		<name>John Dyer</name>
 		<type>mobile</type>
 	</record>
 	<record phone="4074740003">
-		<name>john3</name>
+		<name>Homer Simpson</name>
 		<type>home</type>
 	</record>
 	<record phone="4074740004">
-		<name>john4</name>
+		<name>Captain Awesome</name>
 		<type>office</type>
 	</record>  
 	<record phone="4074740004">
-		<name>john4</name>
+		<name>Marg Simpson</name>
 		<type>office</type>
 	</record>
 </users>

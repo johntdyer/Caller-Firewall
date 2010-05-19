@@ -1,5 +1,5 @@
 <?php  
-$config = parse_ini_file("config.ini");
+$config = parse_ini_file("../config/config.ini");
 $showExtraData=false;
 
 header ("content-type: text/xml"); 
