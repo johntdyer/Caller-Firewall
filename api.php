@@ -16,9 +16,11 @@ $return = "<data>";
 	$xml =  simplexml_load_file("data.xml");
 	$recordsFound = count($xml->xpath('//*[@phone ="'.$phoneNumber.'"]'));
 
-		$return = $return . '<match count="'.$recordsFound.'">';	
-		
-		if($recordsFound==0){ 
+	$return = $return . '<match count="'.$recordsFound.'">';	
+
+
+		if($recordsFound==0){
+			$showExtraData=true;
 			}elseif($recordsFound>1){
 				$return = $return . "<reason>more then 2 records</reason>";
 			}else{    
@@ -34,18 +36,18 @@ $return = "<data>";
 						}
 				}
 			}
-			$return = $return ."</match>";
+	$return = $return ."</match>";
 
 // Dont want to show this extra data unless we actually have a record
-			
-			if($showExtraData){
-				$return = $return ."<applicationData>";
-				$return = $return ."<redirectURL>".$config['redirect_application_url']."</redirectURL>";
-				$return = $return ."<redirectMessage><![CDATA[".strtolower($config['reject_message'])."]]></redirectMessage>"; 
-				$return = $return ."<matchAction>".strtolower($config['on_redirect_match'])."</matchAction>";   
-				$return = $return ."</applicationData>"; 
-			} 
 
-$return = $return ."</data>";
-gecho $return;
+ 	if($showExtraData){
+		$return = $return ."<applicationData>";
+		$return = $return ."<redirectURL>".$config['redirect_application_url']."</redirectURL>";
+		$return = $return ."<redirectMessage><![CDATA[".strtolower($config['reject_message'])."]]></redirectMessage>"; 
+		$return = $return ."<matchAction>".strtolower($config['on_redirect_match'])."</matchAction>";   
+		$return = $return ."</applicationData>"; 
+ 	} 
+
+	$return = $return ."</data>";
+echo $return;
 ?>

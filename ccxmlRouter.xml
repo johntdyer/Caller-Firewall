@@ -16,21 +16,12 @@
 	<var name="reasonMessage"/>
 	<var name="callDisposition"/>
 
-	<var name="redirectRoute" expr="'sip:callxml@127.0.0.1'"/>
+	<var name="noMatchAction"/>
+	<var name="customMessage"/>	
+	<var name="redirectRoute"/>
+	
 	<var name="diagnosticMode" expr="'true'"/>
-	<!--
-	IF CALLER IS NOT IN LIST WE CAN EITHER REDIRECT WITH A FAST BUSY OR WE CAN 
-	REDIRECT WITH CUSTOM MESSAGE
-	-->
-	<!--		reject with busy == 	<var name="noMatchAction" expr="'busy'"/>   -->
-	<!--		reject with msg 	== 	<var name="noMatchAction" expr="'msg'"/>    -->
-	<var name="noMatchAction" expr="'msg'"/>
 
-	<!--
-	CUSTOM MESSAGE TO PRESENT TO CALLER, REQUIRES THAT MATCH ACTION BE SET TO 
-	'msg' (<var name="noMatchAction" expr="'msg'"/>) IN ORDER TO USE
-	-->
-	<var name="customMessage" expr="''"/>
 
 	<script>
 		function getNumberFROM(myNumber)
@@ -56,7 +47,7 @@
 			<assign name="pCharge" expr="event$.connection.protocol.sip.headers['x-sbc-p-charge-info']"/>
 			<if cond="diagnosticMode=='true'">
 				<log expr="'@@@@[ DIAGNOSTIC MODE ]'"/>
-				<assign name="callerID" expr="4074740001"/>
+				<assign name="callerID" expr="4074740004"/>
 				<assign name="FromHeader" expr="'&lt;sip:4074740004@localhost&gt;;tag=OB4UpeH-JQH.chtR3b6-KlgIdslxrqAc'"/>
 				<else/>
 				<assign name="callerID" expr="getNumberFROM(FromHeader)"/>
@@ -75,19 +66,17 @@
 			var data = new XML(event$.data);
 			]]>
 			</script>
-			<log expr="'\n@@@@@@@@\tXML DATA\t@@@@@@@@\n' + data +'\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n'"/>
+			<log expr="'\n@@@@@@@@\tXML DATA\t@@@@@@@@\n' + data +'\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n\n'"/>
 			<assign name="recordsFound" expr="data.match.@count.toString()"/>
 			<assign name="callerName" expr="data.match.name.toString()"/>
-			<assign name="returnPhoneNumber" expr="data.match.number.toString()"/>
+			<assign name="returnPhoneNumber" expr="data.match.callerID.toString()"/>
 			<assign name="returnPhoneNumberType" expr="data.match.type.toString()"/>
+			<assign name="noMatchAction" expr="data.applicationData.matchAction.toString()"/>
+			<assign name="redirectRoute" expr="data.applicationData.redirectURL.toString()"/>
+			<assign name="customMessage" expr="data.applicationData.redirectMessage.toString()"/>
 
-			<!--
-			<log expr="'\n@@@@[noMatchAction] ' + noMatchAction "/>
-			<log expr="'\n@@@@[recordsFound] ' + recordsFound "/>
-			<log expr="'\n@@@@[callerName] ' + callerName "/>
-			<log expr="'\n@@@@[returnPhoneNumber] ' + returnPhoneNumber "/>
-			<log expr="'\n@@@@[returnPhoneNumberType] ' + returnPhoneNumberType "/>
-			-->
+			<log expr="'\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n@\trecordsFound =>\t' + recordsFound +'\t@\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'"/>
+
 			<if cond="Number(recordsFound)&gt;1">
 				<!-- This should only happen on an application error-->
 					<assign name="reasonMessage" expr="data.match.reason.toString()"/>
@@ -97,6 +86,14 @@
 					<accept connectionid="conn_id"/>  
 
 					<elseif cond="Number(recordsFound)==0"/>
+						<!-- Only log this out if we have a single record -->
+						<log expr="'@@@@[customMessage] ' + customMessage "/>
+						<log expr="'@@@@[redirectRoute] ' + redirectRoute "/>
+						<log expr="'@@@@[noMatchAction] ' + noMatchAction "/>
+						<log expr="'@@@@[callerName] ' + callerName "/>
+						<log expr="'@@@@[returnPhoneNumber] ' + returnPhoneNumber "/>
+						<log expr="'@@@@[returnPhoneNumberType] ' + returnPhoneNumberType "/>
+						
 						<if cond="noMatchAction=='msg'">
 								<log expr="'@@@@[ REJECTING CALL WITH CUSTOM MSG ]'"/>
 								<assign name="callDisposition" expr="'Reject With Message'"/>
@@ -110,7 +107,7 @@
 								<reject connectionid="conn_id" reason="'603'"/>
 						</if>
 						<else/>
-						<log expr="'@@@@[REJECT CALL]'"/>
+						<log expr="'@@@@[REDIRECT CALL]'"/>
 						<redirect dest="redirectRoute" connectionid="conn_id"/>
 			</if>
 		</transition>
@@ -127,7 +124,7 @@
 
 		<transition event="connection.disconnected">
 			<if cond="event$.connectionid==conn_id">
-				<log expr="'@@@@[ INBOUND CALL HUNGUP] ' "/>
+				<log expr="'@@@@[ INBOUND CALL DISCONECTED] ' "/>
 			</if>
 		</transition>
 
@@ -136,6 +133,8 @@
 			
 			<log expr="'@@@@@ ENDING APPLICATION'"/>    
 			<log expr="'@@@@@ POST CALL CLEAN UP '"/>
+			
+			<disconnect connectionid="conn_id"/>
 			<send name="'user.CALL_CLEANUP'" target="session.id"/>
 		</transition>
 
