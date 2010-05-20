@@ -24,7 +24,25 @@ Setup:
 
 	You will need to edit the config.ini file to set this redirect route to your
 	existing application URL for successful redirects
-  
+   
+
+Adding Callers:
+
+	Please add callers you wish to 'bless' to the data.xml file, which is located
+	in the db directory.  The format is quite simple:
+
+	<?xml version="1.0"?>
+		<users>
+			<record phone="4074740001">
+				<name>John Dyer</name>
+				<type>office</type>
+			</record>
+		</users>	
+		
+		Simply add additional nodes as needed! Thats all folks!
+		
+		
+	
 
 	Testing:
 		You can edit the cccxmlRouter.xml file and on line 22 set test to true:
