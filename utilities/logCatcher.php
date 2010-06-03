@@ -32,7 +32,7 @@ if(!file_exists($myFile)){
 }else{
 	$fh = fopen($myFile, 'a');
 	fwrite($fh,
-		$timeStamp				.",".
+			$timeStamp				.",".
 		$sessionID				.",".
 		$callerID					.",".
 		$callDisposition	."\n"

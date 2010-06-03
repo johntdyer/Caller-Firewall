@@ -27,11 +27,11 @@ $return = "<data>";
 				$showExtraData=true;
 				foreach($xml->xpath('//*[@phone ="'.$phoneNumber.'"]') as $item) {
 					$row = simplexml_load_string($item->asXML());
-					echo $row;
+				echo $row;
 					$v = $row->xpath('//*[@phone ="'.$phoneNumber.'"]');
-				 	 if($v[0]){ 
-							$return = $return .	"<name><![CDATA["	.	$item->name	.	"]]></name>";
-							$return = $return .	"<callerID><![CDATA["	.	$item->attributes()	.	"]]></callerID>";
+			 	 if($v[0]){ 
+						$return = $return .	"<name><![CDATA["	.	$item->name	.	"]]></name>";
+						$return = $return .	"<callerID><![CDATA["	.	$item->attributes()	.	"]]></callerID>";
 							$return = $return .	"<type><![CDATA["	.	$item->type	.	"]]></type>";
 						}
 				}
